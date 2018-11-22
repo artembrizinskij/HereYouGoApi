@@ -65,16 +65,19 @@ namespace Logic.Services
                 return result.AddError("Incorrect wallet address");
 
             var content = new Dictionary<string, string>{ { "account", _contextProvider.Account.WalletAddress } };
-            var response = await SendPostRequestAsync(CreateUrl("/getBalance") , content);
+
+            //mock result for demo test
+            var accountBalanceInWeiMock = 1000000000000000000;
+            //var response = await SendPostRequestAsync(CreateUrl("/getBalance") , content);
             var usd = await GetEthPriceInUsdAsync();
 
-            if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
-                return result.AddError("Error response");
+            //if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
+            //    return result.AddError("Error response");
 
-            if (!long.TryParse(deserializeObject.Result, out long lonV))
-                return result.AddError("Incorrect value");
+            //if (!long.TryParse(deserializeObject.Result, out long lonV))
+            //    return result.AddError("Incorrect value");
             
-            return result.SetData(Math.Round((decimal)((lonV / OneEthInWei) * usd), 2));
+            return result.SetData(Math.Round((decimal)((accountBalanceInWeiMock / OneEthInWei) * usd), 2));
         }
 
         public async Task<RequestResult<bool>> SendWeiAsync(string walletAddressTo, long value, string pass)
