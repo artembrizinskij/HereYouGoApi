@@ -3,5 +3,6 @@
     public interface IBaseSqlService
     {
         void Commit();
+        void CommitAsync();
     }
 }

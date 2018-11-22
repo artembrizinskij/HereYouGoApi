@@ -15,6 +15,7 @@ namespace Logic.Services
         /// <summary>
         /// Получение баланса в USD для кошелька контекстного аккаунта
         /// </summary>
+        /// <remarks>Результат меньше 0.01 usd (при курсе ~160usd = 1eth = ~100000000000000 wei) выводиться не будет</remarks>
         Task<RequestResult<decimal>> GetBalanceByCurrentAccountInUsdAsync();
 
         /// <summary>

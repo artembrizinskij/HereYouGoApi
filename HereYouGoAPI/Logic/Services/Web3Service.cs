@@ -11,7 +11,7 @@ using Domain.ViewModels;
 using Infastructure.Extensions;
 using Infastructure.Helpers;
 using Infastructure.Result;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration;
 using Security.Providers;
 
 namespace Logic.Services
@@ -21,13 +21,14 @@ namespace Logic.Services
         private readonly IContextProvider _contextProvider;
         private readonly ICommonDbService _db;
         private static readonly HttpClient Client = new HttpClient();
-        private string hostAddress = "http://192.168.1.148:9000";
-        private const long OneEthInWei = 1000000000000000000;
+        private readonly string _hostAddress; 
+        private const double OneEthInWei = 1000000000000000000.0;
 
-        public Web3Service(IContextProvider contextProvider, ICommonDbService commonDbService)
+        public Web3Service(IContextProvider contextProvider, ICommonDbService commonDbService, IConfiguration configuration)
         {
             _contextProvider = contextProvider;
             _db = commonDbService;
+            _hostAddress = configuration.GetSection("Hosts:Web3HostAddress").Value ?? "";
         }
 
         public async Task<RequestResult<AccountViewModel>> CreateNewWalletAsync(string password)
@@ -41,12 +42,17 @@ namespace Logic.Services
             var content = new FormUrlEncodedContent(new Dictionary<string, string>{{ "pass", password }});
             var response = await Client.PostAsync(CreateUrl("/account/create"), content);
             var responseString = await response.Content.ReadAsStringAsync();
-            var deserializeObject = JsonConvert.DeserializeObject<SimpleResult>(responseString);
+
+            if (!responseString.TryDeserializeObject(out SimpleResult deserializeObject))
+                return result.AddError("Error response");
+
             if (deserializeObject.Result.IsNullOrEmpty())
                 return result.AddError("Error creating wallet");
+
             account.WalletAddress = deserializeObject.Result;
+
             _db.Accounts.Update(account);
-            _db.Commit();
+            _db.CommitAsync();
             return result.SetData(account.MapTo<AccountViewModel>());
         }
 
@@ -58,30 +64,28 @@ namespace Logic.Services
             if (_contextProvider.Account.WalletAddress.IsNullOrEmpty() || _contextProvider.Account.WalletAddress.Length != 42)
                 return result.AddError("Incorrect wallet address");
 
-            var values = new Dictionary<string, string>{ { "account", _contextProvider.Account.WalletAddress } };
-            var response = await SendPostRequestAsync(CreateUrl("/getBalance") , values);
+            var content = new Dictionary<string, string>{ { "account", _contextProvider.Account.WalletAddress } };
+            var response = await SendPostRequestAsync(CreateUrl("/getBalance") , content);
             var usd = await GetEthPriceInUsdAsync();
-            var deserializeObject = JsonConvert.DeserializeObject<SimpleResult>(response);
+
+            if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
+                return result.AddError("Error response");
 
             if (!long.TryParse(deserializeObject.Result, out long lonV))
                 return result.AddError("Incorrect value");
-
-            return result.SetData((lonV / OneEthInWei) * usd);
+            
+            return result.SetData(Math.Round((decimal)((lonV / OneEthInWei) * usd), 2));
         }
 
         public async Task<RequestResult<bool>> SendWeiAsync(string walletAddressTo, long value, string pass)
         {
             var result = new RequestResult<bool>();
-            //var content = new Dictionary<string, string>(){{"from", _contextProvider.Account.WalletAddress}, {"to", walletAddressTo}};
-            var content = new Dictionary<string, string>()
-            {
-                { "from", "0x07e605e7431e473e435d2e35f0c7c50590684335" }, { "to", _contextProvider.Account.WalletAddress },
-                {"value", $"{value}" }
-            };
-            var response = await SendPostRequestAsync(CreateUrl("/ether/send"), content, pass);
-            var res = JsonConvert.DeserializeObject<SimpleResult>(response);
+            var content = new Dictionary<string, string>() { { "from", _contextProvider.Account.WalletAddress }, { "to", walletAddressTo } };
+            var response = await SendPostRequestAsync(CreateUrl("/ether/send"), content);
+            if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
+                return result.AddError("Error response");
 
-            var status = await GetTransactionsReceiptAsync(res.Result);
+            var status = await GetTransactionsReceiptAsync(deserializeObject.Result);
             if (status == "0x0")
                 return result.AddError($"Invalid transactions status: {status}. Check status later");
 
@@ -90,33 +94,27 @@ namespace Logic.Services
 
         public async Task<string> GetTransactionsReceiptAsync(string transactionHash)
         {
-            var content = new Dictionary<string, string>() { { "hash", transactionHash } };
-            var response = await SendPostRequestAsync(CreateUrl("/transactions/receipt"), content);
-            return JsonConvert.DeserializeObject<TransactionsResult>(response).Result.Status;
+            var response = await SendPostRequestAsync(CreateUrl("/transactions/receipt"), new Dictionary<string, string>() { { "hash", transactionHash } });
+            if (!response.TryDeserializeObject(out TransactionsResult deserializeObject))
+                return "Error response";
+            return deserializeObject.Result.Status;
         }
 
         private async Task<int> GetEthPriceInUsdAsync()
         {
-            var res = await Client.GetAsync("https://api.coinmarketcap.com/v1/ticker/ethereum/");
-            var responseString = await res.Content.ReadAsStringAsync();
-            var obj = JsonConvert.DeserializeObject<List<EthPrices>>(responseString).FirstOrDefault().price_usd.Split('.').FirstOrDefault();
+            var response = await Client.GetAsync("https://api.coinmarketcap.com/v1/ticker/ethereum/");
+            var responseString = await response.Content.ReadAsStringAsync();
+            if (!responseString.TryDeserializeObject(out List<EthPrices> deserializeObject))
+                return 0;
+            var obj = deserializeObject.FirstOrDefault().price_usd.Split('.').FirstOrDefault();
             int.TryParse(obj, out int value);
             return value;
         }
 
-        private async Task<string> SendPostRequestAsync(string url, Dictionary<string, string> contentArray, string pass = "")
+        private async Task<string> SendPostRequestAsync(string url, Dictionary<string, string> contentArray)
         {
-            var content = new FormUrlEncodedContent(contentArray);
-            if (pass != "")
-            {
-                var responseLogin = await Client.PostAsync(url, new FormUrlEncodedContent(new Dictionary<string, string>(){
-                    { "pass", pass},
-                    { "account", "0x07e605e7431e473e435d2e35f0c7c50590684335" } }));
-                var signResp = await responseLogin.Content.ReadAsStringAsync();
-            }
-
-            var response = await Client.PostAsync(url, content);
-            return await response.Content.ReadAsStringAsync();
+                var response = await Client.PostAsync(url, new FormUrlEncodedContent(contentArray));
+                return await response.Content.ReadAsStringAsync();
         }
 
         private string CreateUrl(string path)
@@ -125,7 +123,7 @@ namespace Logic.Services
                 return path;
             if (path.ToCharArray()[0] != '/')
                 path = $"/{path}";
-            return hostAddress + path;
+            return _hostAddress + path;
         }
     }
 }

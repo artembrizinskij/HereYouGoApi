@@ -35,7 +35,7 @@ namespace HereYouGoAPI.Controllers
         [HttpGet]
         [Authorize]
         [Route("get/balance")]
-        public async Task<IActionResult> GetBalance() => Ok( await _blockchainService.GetBalanceByCurrentAccountInUsdAsync());
+        public async Task<IActionResult> GetBalance() => Ok(await _blockchainService.GetBalanceByCurrentAccountInUsdAsync());
 
         [HttpGet]
         [Authorize]
