@@ -8,6 +8,7 @@ using DAl.Sql;
 using DAl.Sql.Services;
 using Domain.Entities;
 using Domain.ViewModels;
+using Infastructure.Extensions;
 using Logic.AutoMapperProfiles;
 using Logic.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -41,19 +42,16 @@ namespace HereYouGoAPI
             SetConnectionString(services);
             AddTransients(services);
             AuthConfigure(services);
+            services.AddSwaggerDocumentation();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             app.UseAuthentication();
             if (env.IsDevelopment())
-            {
                 app.UseDeveloperExceptionPage();
-            }
             else
-            {
                 app.UseHsts();
-            }
 
             using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
             {
@@ -64,6 +62,9 @@ namespace HereYouGoAPI
             app.UseHttpsRedirection();
             app.UseMvc();
             Mapper.Initialize(cfg => {});
+            app.UseStaticFiles();
+            app.UseSwagger();
+            app.UseSwaggerDocumentation();
         }
 
         private void AuthConfigure(IServiceCollection services)
@@ -93,10 +94,8 @@ namespace HereYouGoAPI
             services.AddSingleton<IContextProvider, ContextProvider>();
         }
 
-        private void SetConnectionString(IServiceCollection services)
-        {
+        private void SetConnectionString(IServiceCollection services) =>
                 services.AddDbContext<CommonContext>(options => options.UseSqlServer(Configuration.GetConnectionString("SqlConnection")));
-        }
 
     }
 }
