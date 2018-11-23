@@ -21,7 +21,7 @@ namespace Logic.Services
         private readonly IContextProvider _contextProvider;
         private readonly ICommonDbService _db;
         private static readonly HttpClient Client = new HttpClient();
-        private readonly string _hostAddress; 
+        private readonly string _hostAddress;
         private const double OneEthInWei = 1000000000000000000.0;
 
         public Web3Service(IContextProvider contextProvider, ICommonDbService commonDbService, IConfiguration configuration)
@@ -61,10 +61,10 @@ namespace Logic.Services
             var result = new RequestResult<decimal>();
 
             //42 - стандартная длина адресса в blockchain
-            if (_contextProvider.Account.WalletAddress.IsNullOrEmpty() || _contextProvider.Account.WalletAddress.Length != 42)
-                return result.AddError("Incorrect wallet address");
+            //if (_contextProvider.Account.WalletAddress.IsNullOrEmpty() || _contextProvider.Account.WalletAddress.Length != 42)
+            //    return result.AddError("Incorrect wallet address");
 
-            var content = new Dictionary<string, string>{ { "account", _contextProvider.Account.WalletAddress } };
+            //var content = new Dictionary<string, string>{ { "account", _contextProvider.Account.WalletAddress } };
 
             //mock result for demo test
             var accountBalanceInWeiMock = 1000000000000000000;
@@ -76,7 +76,7 @@ namespace Logic.Services
 
             //if (!long.TryParse(deserializeObject.Result, out long lonV))
             //    return result.AddError("Incorrect value");
-            
+
             return result.SetData(Math.Round((decimal)((accountBalanceInWeiMock / OneEthInWei) * usd), 2));
         }
 
