@@ -52,7 +52,7 @@ namespace HereYouGoAPI
                 context.Database.Migrate();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
             app.UseMvc();
             Mapper.Initialize(cfg => {});
             app.UseStaticFiles();
