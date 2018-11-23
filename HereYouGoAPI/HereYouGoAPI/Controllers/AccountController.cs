@@ -39,12 +39,7 @@ namespace HereYouGoAPI.Controllers
 
         [HttpGet]
         [Authorize]
-        [Route("profile/get")]
+        [Route("get/profile")]
         public IActionResult GetProfile() => Ok(_accountService.GetCurrentAccount());
-
-        [HttpGet]
-        [Authorize]
-        [Route("isAuthorized")]
-        public IActionResult IsAuthorized() => Ok();
     }
 }
