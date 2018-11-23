@@ -56,9 +56,9 @@ namespace Logic.Services
             return result.SetData(account.MapTo<AccountViewModel>());
         }
 
-        public async Task<RequestResult<decimal>> GetBalanceByCurrentAccountInUsdAsync()
+        public async Task<RequestResult<BlockchainBalanceViewModel>> GetBalanceByCurrentAccountInUsdAsync()
         {
-            var result = new RequestResult<decimal>();
+            var result = new RequestResult<BlockchainBalanceViewModel>();
 
             //42 - стандартная длина адресса в blockchain
             //if (_contextProvider.Account.WalletAddress.IsNullOrEmpty() || _contextProvider.Account.WalletAddress.Length != 42)
@@ -74,10 +74,12 @@ namespace Logic.Services
             //if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
             //    return result.AddError("Error response");
 
-            //if (!long.TryParse(deserializeObject.Result, out long lonV))
+            //if (!long.TryParse(deserializeObject.Result, out long weiValue))
             //    return result.AddError("Incorrect value");
+            var ethValue = (decimal)(accountBalanceInWeiMock / OneEthInWei);
+            var inUsd = Math.Round(ethValue * usd, 2);
+            return result.SetData(new BlockchainBalanceViewModel(inUsd, ethValue, accountBalanceInWeiMock));
 
-            return result.SetData(Math.Round((decimal)((accountBalanceInWeiMock / OneEthInWei) * usd), 2));
         }
 
         public async Task<RequestResult<bool>> SendWeiAsync(string walletAddressTo, long value, string pass)
@@ -102,6 +104,8 @@ namespace Logic.Services
                 return "Error response";
             return deserializeObject.Result.Status;
         }
+
+        public async Task<RequestResult<int>> GetEthereumPriceInUsdAsync() => new RequestResult<int>().SetData(await GetEthPriceInUsdAsync());
 
         private async Task<int> GetEthPriceInUsdAsync()
         {

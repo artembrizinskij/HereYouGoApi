@@ -16,7 +16,7 @@ namespace Logic.Services
         /// Получение баланса в USD для кошелька контекстного аккаунта
         /// </summary>
         /// <remarks>Результат меньше 0.01 usd (при курсе ~160usd = 1eth = ~100000000000000 wei) выводиться не будет</remarks>
-        Task<RequestResult<decimal>> GetBalanceByCurrentAccountInUsdAsync();
+        Task<RequestResult<BlockchainBalanceViewModel>> GetBalanceByCurrentAccountInUsdAsync();
 
         /// <summary>
         /// for test
@@ -31,5 +31,11 @@ namespace Logic.Services
         /// <param name="transactionHash">хэш транзакции</param>
         /// <returns></returns>
         Task<string> GetTransactionsReceiptAsync(string transactionHash);
+
+        /// <summary>
+        /// Получение стоимости Eth в Usd на текущий момент времени
+        /// </summary>
+        /// <returns></returns>
+        Task<RequestResult<int>> GetEthereumPriceInUsdAsync();
     }
 }
