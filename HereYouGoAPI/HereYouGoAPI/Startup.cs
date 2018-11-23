@@ -1,27 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using AutoMapper;
 using DAl.Sql;
 using DAl.Sql.Services;
-using Domain.Entities;
-using Domain.ViewModels;
 using Infastructure.Extensions;
-using Logic.AutoMapperProfiles;
 using Logic.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Security.Providers;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
@@ -29,6 +19,9 @@ namespace HereYouGoAPI
 {
     public class Startup
     {
+        private readonly string ConnectionstringToSql = "SqlConnection";
+        private readonly string ConnectionstringToPsg = "PostgresConnection";
+
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -94,8 +87,32 @@ namespace HereYouGoAPI
             services.AddSingleton<IContextProvider, ContextProvider>();
         }
 
-        private void SetConnectionString(IServiceCollection services) =>
-                services.AddDbContext<CommonContext>(options => options.UseSqlServer(Configuration.GetConnectionString("SqlConnection")));
 
+        private void SetConnectionString(IServiceCollection services)
+        {
+            if (GetConnectionForOS() == "SqlConnection")
+                services.AddDbContext<CommonContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString(ConnectionstringToSql)));
+            else
+                services.AddDbContext<CommonContext>(options => options.UseNpgsql(Configuration.GetConnectionString(ConnectionstringToPsg)));
+        }
+
+        private string GetConnectionForOS()
+        {
+            OperatingSystem os = Environment.OSVersion;
+            PlatformID pid = os.Platform;
+            switch (pid)
+            {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                    return "SqlConnection";
+                case PlatformID.Unix:
+                    return "PostgresConnection";
+                default:
+                    throw new Exception("Failed to get connection to the database. ERROR: This platform identifier is invalid.");
+            }
+        }
     }
 }
