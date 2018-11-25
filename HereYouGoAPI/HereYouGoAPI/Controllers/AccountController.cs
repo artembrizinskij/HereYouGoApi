@@ -24,6 +24,11 @@ namespace HereYouGoAPI.Controllers
         public IActionResult CreateAccount(AccountForm form) => Ok(_accountService.CreateAccount(form));
 
         [HttpPost]
+        [Authorize]
+        [Route("update")]
+        public IActionResult UpdateAccount(AccountForm form) => Ok(_accountService.UpdateAccount(form));
+
+        [HttpPost]
         [Route("auth")]
         public IActionResult Authorization(SignInForm form) => Ok(_accountService.SignIn(form));
 

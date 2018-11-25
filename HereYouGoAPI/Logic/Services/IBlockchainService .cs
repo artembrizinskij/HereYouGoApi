@@ -37,5 +37,12 @@ namespace Logic.Services
         /// </summary>
         /// <returns></returns>
         Task<RequestResult<int>> GetEthereumPriceInUsdAsync();
+
+        /// <summary>
+        /// Покупка доли автомобиля
+        /// </summary>
+        /// <param name="amountUsd">Сумма, на которую будет произведена покупка</param>
+        /// <param name="walletPassword">Пароль от кошелька контекстного пользователя</param>
+        Task<RequestResult<bool>> BuyCarShares(int amountUsd, string walletPassword);
     }
 }

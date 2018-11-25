@@ -29,5 +29,10 @@ namespace HereYouGoAPI.Controllers
         [HttpGet]
         [Route("eth/price/inUsd")]
         public async Task<IActionResult> GetEthPriceInUsdAsync() => Ok(await _blockchainService.GetEthereumPriceInUsdAsync());
+
+        [HttpPost]
+        [Authorize]
+        [Route("contract/BuyCarShares")]
+        public async Task<IActionResult> TransactionsReceiptAsync(int amountUsd, string walletPass) => Ok(await _blockchainService.BuyCarShares(amountUsd, walletPass));
     }
 }
