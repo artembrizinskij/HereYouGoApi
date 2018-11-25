@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Numerics;
-using System.Text;
 using System.Threading.Tasks;
 using DAl.Sql.Services;
 using Domain.Structs.Web3Service;
@@ -23,6 +21,7 @@ namespace Logic.Services
         private static readonly HttpClient Client = new HttpClient();
         private readonly string _hostAddress;
         private const double OneEthInWei = 1000000000000000000.0;
+        private const string ContractAddressTest = "0xfb1fb9f5f3c93c08f8f522f3541f7b4998497875";
 
         public Web3Service(IContextProvider contextProvider, ICommonDbService commonDbService, IConfiguration configuration)
         {
@@ -106,6 +105,36 @@ namespace Logic.Services
         }
 
         public async Task<RequestResult<int>> GetEthereumPriceInUsdAsync() => new RequestResult<int>().SetData(await GetEthPriceInUsdAsync());
+
+        #region SmartContractMethods
+
+        public async Task<RequestResult<bool>> BuyCarShares(int amountUsd, string walletPassword)
+        {
+            var result = new RequestResult<bool>();
+            var balanceInUsdOfCurrentAccount = await GetBalanceByCurrentAccountInUsdAsync();
+
+            if (amountUsd > balanceInUsdOfCurrentAccount.Data.UsdValue)
+                return result.AddError("Not enough money");
+
+            var priceEthInUsd = await GetEthPriceInUsdAsync();
+            var amountInWei = (long)((decimal)(OneEthInWei / 100) * ((amountUsd / ((decimal)priceEthInUsd / 100))));
+
+            var response = await SendPostRequestAsync(CreateUrl("/contract/smartcar/function/buyCarShares"), new Dictionary<string, string>()
+            {
+                { "address", ContractAddressTest },
+                { "account", _contextProvider.Account.WalletAddress },
+                { "pass", walletPassword },
+                { "amountUsd", $"{amountUsd}" },
+                { "amountWei", $"{amountInWei}" }
+            });
+
+            if (!response.TryDeserializeObject(out SimpleResult deserializeObject))
+                return result.AddError("Error response");
+
+            return result;
+        }
+
+        #endregion
 
         private async Task<int> GetEthPriceInUsdAsync()
         {
