@@ -31,6 +31,14 @@ namespace HereYouGoAPI
         
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAllOrigins",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin();
+                    });
+            });
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             SetConnectionString(services);
             AddTransients(services);
@@ -45,6 +53,7 @@ namespace HereYouGoAPI
                 app.UseDeveloperExceptionPage();
             else
                 app.UseHsts();
+            app.UseCors();
 
             using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
             {
