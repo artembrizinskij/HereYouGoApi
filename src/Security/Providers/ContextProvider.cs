@@ -10,7 +10,7 @@ namespace Security.Providers
 
         public void Inizialize(string accountId, ICommonDbService db)
         {
-            if (Account == null && !string.IsNullOrEmpty(accountId))
+            if (!string.IsNullOrEmpty(accountId))
             {
                 Guid.TryParse(accountId, out Guid id);
                 Account = db.Accounts.FindOneById(id);
