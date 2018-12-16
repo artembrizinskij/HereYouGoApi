@@ -5,5 +5,7 @@ namespace Security.Controllers
 {
     [UserIdentity]
     [Produces("application/json")]
-    public class SecurityController : Controller {}
+    [ApiController]
+    public class SecurityController : ControllerBase { }
+
 }
